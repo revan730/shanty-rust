@@ -1,5 +1,8 @@
 use crate::token;
 use crate::char_utils;
+use crate::number_fsm;
+use substring::Substring;
+use crate::token::Token;
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -150,7 +153,31 @@ impl Lexer {
     }
 
     fn recognize_number(& mut self) -> token::Token {
-        todo!();
+        let line = self.line;
+        let column = self.column;
+
+        let fsm = number_fsm::NumberFSM::new();
+        let fsm_input = self.input.substring(self.position, self.input.len() - 1);
+
+        let run_result = fsm.run(fsm_input);
+        if run_result.recognized {
+            self.position += run_result.value.len();
+            self.column += run_result.value.len();
+
+            return token::Token {
+                token_type: token::INTEGER_LITERAL.to_string(),
+                value: run_result.value,
+                line,
+                column,
+            };
+        } else {
+            return token::Token {
+                token_type: token::UNKNOWN.to_string(),
+                value: "".to_string(),
+                line,
+                column,
+            }
+        }
     }
 
     fn recognize_string(& mut self) -> token::Token {

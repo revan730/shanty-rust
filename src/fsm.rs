@@ -23,7 +23,7 @@ impl Display for FSM<'_> {
 }
 
 impl FSM<'_> {
-    fn run(&self, input: &str) -> RunResult {
+    pub(crate) fn run(&self, input: &str) -> RunResult {
         let mut current_state = self.initial_state;
         let mut length: usize = 0;
 
