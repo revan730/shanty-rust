@@ -28,7 +28,7 @@ fn strip_final_newline(s: String) -> String {
 }
 
 impl Lexer {
-    pub fn all_tokens(& mut self) -> Vec<token::Token> {
+    pub fn all_tokens(& mut self) -> Vec<Token> {
         self.input = strip_final_newline(self.input.clone());
         self.position = 0;
         self.column = 1;
@@ -46,9 +46,9 @@ impl Lexer {
         return tokens;
     }
 
-    fn next_token(&mut self) -> token::Token {
+    fn next_token(&mut self) -> Token {
         if self.position >= self.input.len() {
-            return token::Token {
+            return Token {
                 token_type: token::EOF.to_string(),
                 value: "".to_string(),
                 line: self.line,
@@ -107,7 +107,7 @@ impl Lexer {
          }
     }
 
-    fn recognize_identifier(& mut self) -> token::Token {
+    fn recognize_identifier(& mut self) -> Token {
         let mut identifier = "".to_string();
         let line = self.line;
         let column = self.column;
@@ -128,31 +128,31 @@ impl Lexer {
         self.column += identifier.len();
 
         if char_utils::is_identifier_reserved(&identifier) {
-            return token::Token {
+            return Token {
                 token_type: identifier.clone(),
                 value: identifier,
-                line: line,
-                column: column
+                line,
+                column
             }
         }
         if char_utils::is_boolean_literal(&identifier) {
-            return token::Token {
+            return Token {
                 token_type: token::BOOLEAN_LITERAL.to_string(),
                 value: identifier,
-                line: line,
-                column: column
+                line,
+                column
             }
         }
     
-        return token::Token {
+        return Token {
             token_type: token::IDENTIFIER.to_string(),
             value: identifier,
-            line: line,
-            column: column
+            line,
+            column
         }
     }
 
-    fn recognize_number(& mut self) -> token::Token {
+    fn recognize_number(& mut self) -> Token {
         let line = self.line;
         let column = self.column;
 
@@ -160,18 +160,18 @@ impl Lexer {
         let fsm_input = self.input.substring(self.position, self.input.len() - 1);
 
         let run_result = fsm.run(fsm_input);
-        if run_result.recognized {
+        return if run_result.recognized {
             self.position += run_result.value.len();
             self.column += run_result.value.len();
 
-            return token::Token {
+            Token {
                 token_type: token::INTEGER_LITERAL.to_string(),
                 value: run_result.value,
                 line,
                 column,
-            };
+            }
         } else {
-            return token::Token {
+            Token {
                 token_type: token::UNKNOWN.to_string(),
                 value: "".to_string(),
                 line,
@@ -180,7 +180,7 @@ impl Lexer {
         }
     }
 
-    fn recognize_string(& mut self) -> token::Token {
+    fn recognize_string(& mut self) -> Token {
         let mut string_literal = "\"".to_string();
         let line = self.line;
         let column = self.column;
@@ -200,24 +200,24 @@ impl Lexer {
         self.position += string_literal.len();
         self.column += string_literal.len();
 
-        if string_literal.as_bytes()[string_literal.len() - 1] as char != '"' {
-            return token::Token {
+        return if string_literal.as_bytes()[string_literal.len() - 1] as char != '"' {
+            Token {
                 token_type: token::UNKNOWN.to_string(),
                 value: "".to_string(),
-                line: line,
-                column: column,
+                line,
+                column,
             }
         } else {
-            return token::Token {
+            Token {
                 token_type: token::STRING_LITERAL.to_string(),
                 value: string_literal[1..string_literal.len() - 1].to_string(),
-                line: line,
-                column: column,
+                line,
+                column,
             }
         }
     }
 
-    fn recognize_rune(& mut self) -> token::Token {
+    fn recognize_rune(& mut self) -> Token {
         let line = self.line;
         let column = self.column;
         let position = self.position;
@@ -227,24 +227,24 @@ impl Lexer {
         self.position += 3;
         self.column += 3;
 
-        if self.input.as_bytes()[position + 2] as char != '\'' {
-            return token::Token {
+        return if self.input.as_bytes()[position + 2] as char != '\'' {
+            Token {
                 token_type: token::UNKNOWN.to_string(),
                 value: format!("{}{}{}", '\'', char_after_quote, char_that_must_be_quote),
-                line: line,
-                column: column,
+                line,
+                column,
             }
         } else {
-            return token::Token {
+            Token {
                 token_type: token::RUNE_LITERAL.to_string(),
                 value: char_after_quote.to_string(),
-                line: line,
-                column: column,
+                line,
+                column,
             }
         }
     }
 
-    fn recognize_operator(& mut self) -> token::Token {
+    fn recognize_operator(& mut self) -> Token {
         let character = self.input.as_bytes()[self.position] as char;
 
         if char_utils::is_comparison_operator(character) {
@@ -262,7 +262,7 @@ impl Lexer {
         panic!("Unknown operator type {}", character)
     }
 
-    fn recognize_comparison_operator(& mut self) -> token::Token {
+    fn recognize_comparison_operator(& mut self) -> Token {
         let position = self.position;
         let line = self.line;
         let column = self.column;
@@ -288,80 +288,80 @@ impl Lexer {
 
         match character {
             '>' => {
-                if is_lookahead_equal_symbol {
-                    return token::Token {
+                return if is_lookahead_equal_symbol {
+                    Token {
                         token_type: token::RT_EQ.to_string(),
                         value: token::RT_EQ.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::RT.to_string(),
                         value: token::RT.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             '<' => {
-                if is_lookahead_equal_symbol {
-                    return token::Token {
+                return if is_lookahead_equal_symbol {
+                    Token {
                         token_type: token::LT_EQ.to_string(),
                         value: token::LT_EQ.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::LT.to_string(),
                         value: token::LT.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             '=' => {
-                if is_lookahead_equal_symbol {
-                    return token::Token {
+                return if is_lookahead_equal_symbol {
+                    Token {
                         token_type: token::EQ.to_string(),
                         value: token::EQ.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::ASSIGN.to_string(),
                         value: token::ASSIGN.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             '!' => {
-                if is_lookahead_equal_symbol {
-                    return token::Token {
+                return if is_lookahead_equal_symbol {
+                    Token {
                         token_type: token::NEQ.to_string(),
                         value: token::NEQ.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::NOT.to_string(),
                         value: token::NOT.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             _ => {
-                panic!("Unknow comparison op {} at {}:{}", character, line, column);
+                panic!("Unknown comparison op {} at {}:{}", character, line, column);
             }
         }
     }
 
-    fn recognize_arithmetic_operator(& mut self) -> token::Token {
+    fn recognize_arithmetic_operator(& mut self) -> Token {
         let position = self.position;
         let line = self.line;
         let column = self.column;
@@ -388,62 +388,62 @@ impl Lexer {
 
         match character {
             '+' => {
-                if is_lookahead_plus_symbol {
-                    return token::Token {
+                return if is_lookahead_plus_symbol {
+                    Token {
                         token_type: token::POST_INCREMENT.to_string(),
                         value: token::POST_INCREMENT.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::PLUS.to_string(),
                         value: token::PLUS.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             '-' => {
-                if is_lookahead_minus_symbol {
-                    return token::Token {
+                return if is_lookahead_minus_symbol {
+                    Token {
                         token_type: token::POST_DECREMENT.to_string(),
                         value: token::POST_DECREMENT.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::MINUS.to_string(),
                         value: token::MINUS.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             '*' => {
-                return token::Token {
+                return Token {
                     token_type: token::TIMES.to_string(),
                     value: token::TIMES.to_string(),
-                    line: line,
-                    column: column,
+                    line,
+                    column,
                 }
             },
             '/' => {
-                return token::Token {
+                return Token {
                     token_type: token::DIV.to_string(),
                     value: token::DIV.to_string(),
-                    line: line,
-                    column: column,
+                    line,
+                    column,
                 }
             },
             '.' => {
                 // Not really an arithmetic op, but fit here so well
-                return token::Token {
+                return Token {
                     token_type: token::DOT.to_string(),
                     value: token::DOT.to_string(),
-                    line: line,
-                    column: column,
+                    line,
+                    column,
                 }
             },
             _ => {
@@ -452,7 +452,7 @@ impl Lexer {
         }
     }
 
-    fn recognize_logical_operator(& mut self) -> token::Token {
+    fn recognize_logical_operator(& mut self) -> Token {
         let position = self.position;
         let line = self.line;
         let column = self.column;
@@ -478,46 +478,46 @@ impl Lexer {
 
         match character {
             '&' => {
-                if is_lookahead_amp_symbol {
-                    return token::Token {
+                return if is_lookahead_amp_symbol {
+                    Token {
                         token_type: token::AND.to_string(),
                         value: token::AND.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::AMP.to_string(),
                         value: token::AMP.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             '|' => {
-                if is_lookahead_pipe_symbol {
-                    return token::Token {
+                return if is_lookahead_pipe_symbol {
+                    Token {
                         token_type: token::OR.to_string(),
                         value: token::OR.to_string(),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 } else {
-                    return token::Token {
+                    Token {
                         token_type: token::UNKNOWN.to_string(),
                         value: format!("{}{}", character, lookahead),
-                        line: line,
-                        column: column,
+                        line,
+                        column,
                     }
                 }
             },
             _ => {
-                panic!("Unknow logical op {} at {}:{}", character, line, column);
+                panic!("Unknown logical op {} at {}:{}", character, line, column);
             }
         }
     }
 
-    fn recognize_parenthesis(& mut self) -> token::Token {
+    fn recognize_parenthesis(& mut self) -> Token {
         let position = self.position;
         let line = self.line;
         let column = self.column;
@@ -527,23 +527,23 @@ impl Lexer {
         self.column += 1;
 
         if character == '(' {
-            return token::Token {
+            return Token {
                 token_type: token::L_PARENT.to_string(),
                 value: token::L_PARENT.to_string(),
-                line: line,
-                column: column,
+                line,
+                column,
             }
         }
 
-        return token::Token {
+        return Token {
             token_type: token::R_PARENT.to_string(),
             value: token::R_PARENT.to_string(),
-            line: line,
-            column: column,
+            line,
+            column,
         }
     }
 
-    fn recognize_punctuation(& mut self) -> token::Token {
+    fn recognize_punctuation(& mut self) -> Token {
         let position = self.position;
         let line = self.line;
         let column = self.column;
@@ -553,23 +553,23 @@ impl Lexer {
         self.column += 1;
 
         if character == ';' {
-            return token::Token {
+            return Token {
                 token_type: token::SEMI.to_string(),
                 value: token::SEMI.to_string(),
-                line: line,
-                column: column,
+                line,
+                column,
             }
         }
 
-        return token::Token {
+        return Token {
             token_type: token::COMMA.to_string(),
             value: token::COMMA.to_string(),
-            line: line,
-            column: column,
+            line,
+            column,
         }
     }
 
-    fn recognize_bracket(& mut self) -> token::Token {
+    fn recognize_bracket(& mut self) -> Token {
         let position = self.position;
         let line = self.line;
         let column = self.column;
@@ -579,19 +579,19 @@ impl Lexer {
         self.column += 1;
 
         if character == '{' {
-            return token::Token {
+            return Token {
                 token_type: token::L_BRACE.to_string(),
                 value: token::L_BRACE.to_string(),
-                line: line,
-                column: column,
+                line,
+                column,
             }
         }
 
-        return token::Token {
+        return Token {
             token_type: token::R_BRACE.to_string(),
             value: token::R_BRACE.to_string(),
-            line: line,
-            column: column,
+            line,
+            column,
         }
     }
 }

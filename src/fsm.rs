@@ -17,7 +17,7 @@ pub struct RunResult {
 pub const NO_NEXT_STATE: i8 = -1;
 
 impl Display for FSM<'_> { 
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "{:?} {} {:?}", self.states, self.initial_state, self.accepting_states)
     }
 }
